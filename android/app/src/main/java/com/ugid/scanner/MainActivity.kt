@@ -281,7 +281,7 @@ class MainActivity : AppCompatActivity() {
 
             val uri = FileProvider.getUriForFile(
                 this,
-                "${applicationId}.fileprovider",
+                "${packageName}.fileprovider",
                 csvFile
             )
 

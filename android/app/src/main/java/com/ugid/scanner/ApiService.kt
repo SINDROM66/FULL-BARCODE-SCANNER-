@@ -40,7 +40,7 @@ interface ApiService {
 object RetrofitClient {
     // EMULATOR: use 10.0.2.2:8000
     // PHYSICAL DEVICE: use your computer's WiFi IP, e.g., "http://192.168.1.45:8000/"
-    private const val BASE_URL = "http://10.0.2.2:8000/"
+    const val BASE_URL = "http://10.0.2.2:8000/"
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()
