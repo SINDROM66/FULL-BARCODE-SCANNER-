@@ -1,171 +1,332 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#F5F5F5"
+    android:orientation="vertical">
 
-    <!-- Container for Camera & Form -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/capture_container"
+    <!-- Header -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottom_tabs">
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
 
-        <androidx.camera.view.PreviewView
-            android:id="@+id/previewView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="48dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/nssf_logo"
+            android:layout_marginEnd="12dp" />
 
-        <TextView
-            android:id="@+id/tv_camera_instruction"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Point camera at the PDF417 barcode on the BACK of the ID card"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:background="#AA000000"
-            android:padding="16dp"
-            android:gravity="center"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="32dp"
-            android:layout_marginHorizontal="16dp" />
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <!-- Overlay for Review Form -->
-        <ScrollView
-            android:id="@+id/review_form_overlay"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Digital Pre-Registration"
+                android:textColor="#005A32"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Member Data Capture Tool"
+                android:textColor="#666666"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Capture Container -->
+        <FrameLayout
+            android:id="@+id/capture_container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#DD000000"
-            android:visibility="gone"
-            android:padding="24dp">
+            android:layout_height="match_parent">
+
+            <androidx.camera.view.PreviewView
+                android:id="@+id/previewView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:background="#AA000000"
+                android:padding="12dp"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Scan Barcode on BACK of ID Card"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:layout_marginTop="4dp"
+                    android:text="Make sure the barcode is well-lit and in focus"
+                    android:textColor="#DDDDDD"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
                 android:orientation="vertical"
-                android:background="#FFFFFF"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:background="#66000000">
 
-                <TextView
+                <Button
+                    android:id="@+id/btnCapturePhoto"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Review Scanned Data"
-                    android:textSize="20sp"
+                    android:layout_height="60dp"
+                    android:backgroundTint="#005A32"
+                    android:text="TAKE PHOTO"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="#000000"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="12dp" />
 
-                <TextView
-                    android:id="@+id/tv_scanned_data"
+                <Button
+                    android:id="@+id/btnEnterManually"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#333333"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="16dp" />
+                    android:backgroundTint="#666666"
+                    android:text="Enter Data Manually"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
+            <!-- Loading Overlay -->
+            <FrameLayout
+                android:id="@+id/loading_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#CCFFFFFF"
+                android:visibility="gone"
+                android:clickable="true"
+                android:focusable="true">
+                <LinearLayout
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
-                    android:hint="Phone Number">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_phone_number"
-                        android:layout_width="match_parent"
+                    android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:gravity="center">
+                    <ProgressBar
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:indeterminateTint="#005A32" />
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:inputType="phone" />
+                        android:layout_marginTop="16dp"
+                        android:text="Processing Barcode..."
+                        android:textColor="#005A32"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </FrameLayout>
 
-                </com.google.android.material.textfield.TextInputLayout>
+            <!-- Overlay for Review Form -->
+            <ScrollView
+                android:id="@+id/review_form"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#FFFFFF"
+                android:padding="16dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
-                    <Button
-                        android:id="@+id/btn_cancel_record"
-                        android:layout_width="0dp"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Cancel"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_marginEnd="8dp" />
-
-                    <Button
-                        android:id="@+id/btn_save_record"
-                        android:layout_width="0dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="Review Member Data"
+                        android:textColor="#005A32"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                    
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Save Record" />
+                        android:layout_marginBottom="8dp"
+                        android:hint="Full Name">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPersonName" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hint="NIN">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etNin"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:hint="DOB">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etDob"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="date" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Sex">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etSex"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="Phone Number (Required)">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPhoneNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="phone" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        
+                        <Button
+                            android:id="@+id/btnCancelRecord"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:backgroundTint="#888888"
+                            android:text="Discard" />
+                            
+                        <Button
+                            android:id="@+id/btnSaveRecord"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:backgroundTint="#005A32"
+                            android:text="Save Record" />
+                    </LinearLayout>
                 </LinearLayout>
+            </ScrollView>
 
+        </FrameLayout>
+
+        <!-- Records Container -->
+        <LinearLayout
+            android:id="@+id/records_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Saved Records"
+                    android:textColor="#005A32"
+                    android:textStyle="bold"
+                    android:textSize="18sp" />
+                    
+                <Button
+                    android:id="@+id/btnExport"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#005A32"
+                    android:text="Export CSV" />
             </LinearLayout>
-        </ScrollView>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </LinearLayout>
 
-    <!-- Container for Records -->
-    <LinearLayout
-        android:id="@+id/records_container"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottom_tabs">
-
-        <Button
-            android:id="@+id/btn_export_records"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Export to CSV"
-            android:layout_margin="16dp" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_records"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingBottom="16dp" />
-
-    </LinearLayout>
+    </FrameLayout>
 
     <!-- Bottom Tabs -->
     <LinearLayout
-        android:id="@+id/bottom_tabs"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:layout_height="60dp"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btn_tab_capture"
+            android:id="@+id/btnTabCapture"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="Capture"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            app:cornerRadius="0dp" />
+            android:textColor="#005A32" />
 
         <Button
-            android:id="@+id/btn_tab_records"
+            android:id="@+id/btnTabRecords"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="Records"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            style="?attr/materialButtonOutlinedStyle"
-            app:cornerRadius="0dp" />
-
+            android:textColor="#666666" />
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

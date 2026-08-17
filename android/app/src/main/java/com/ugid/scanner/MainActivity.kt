@@ -3,13 +3,11 @@ package com.ugid.scanner
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -17,13 +15,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.textfield.TextInputEditText
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
@@ -35,24 +33,25 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private val cameraExecutor = Executors.newSingleThreadExecutor()
-    private var isProcessing = false
+    private var imageCapture: ImageCapture? = null
 
     private lateinit var recordManager: RecordManager
     private lateinit var recordAdapter: RecordAdapter
     private var currentScannedResponse: ParseResponse? = null
 
     // UI Elements
-    private lateinit var captureContainer: ConstraintLayout
-    private lateinit var recordsContainer: LinearLayout
-    private lateinit var reviewFormOverlay: ScrollView
-    private lateinit var tvScannedData: TextView
-    private lateinit var etPhoneNumber: EditText
-    private lateinit var btnSaveRecord: Button
-    private lateinit var btnCancelRecord: Button
-    private lateinit var btnTabCapture: Button
-    private lateinit var btnTabRecords: Button
-    private lateinit var recyclerRecords: RecyclerView
-    private lateinit var btnExportRecords: Button
+    private lateinit var captureContainer: View
+    private lateinit var recordsContainer: View
+    private lateinit var reviewForm: View
+    private lateinit var loadingOverlay: View
+
+    private lateinit var etName: TextInputEditText
+    private lateinit var etNin: TextInputEditText
+    private lateinit var etDob: TextInputEditText
+    private lateinit var etSex: TextInputEditText
+    private lateinit var etPhoneNumber: TextInputEditText
+
+    private lateinit var recyclerView: RecyclerView
 
     companion object {
         private const val TAG = "UgandaIDScanner"
@@ -66,9 +65,91 @@ class MainActivity : AppCompatActivity() {
 
         recordManager = RecordManager(this)
 
-        initViews()
-        setupListeners()
-        setupRecyclerView()
+        previewView = findViewById(R.id.previewView)
+        captureContainer = findViewById(R.id.capture_container)
+        recordsContainer = findViewById(R.id.records_container)
+        reviewForm = findViewById(R.id.review_form)
+        loadingOverlay = findViewById(R.id.loading_overlay)
+
+        etName = findViewById(R.id.etName)
+        etNin = findViewById(R.id.etNin)
+        etDob = findViewById(R.id.etDob)
+        etSex = findViewById(R.id.etSex)
+        etPhoneNumber = findViewById(R.id.etPhoneNumber)
+
+        recyclerView = findViewById(R.id.recyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recordAdapter = RecordAdapter(emptyList())
+        recyclerView.adapter = recordAdapter
+
+        findViewById<Button>(R.id.btnTabCapture).setOnClickListener {
+            captureContainer.visibility = View.VISIBLE
+            recordsContainer.visibility = View.GONE
+            if (reviewForm.visibility == View.VISIBLE) {
+                // Keep review form open if they were editing
+            } else {
+                startCamera()
+            }
+        }
+
+        findViewById<Button>(R.id.btnTabRecords).setOnClickListener {
+            captureContainer.visibility = View.GONE
+            recordsContainer.visibility = View.VISIBLE
+            loadRecords()
+        }
+
+        findViewById<Button>(R.id.btnCapturePhoto).setOnClickListener {
+            takePhotoAndProcess()
+        }
+
+        findViewById<Button>(R.id.btnEnterManually).setOnClickListener {
+            currentScannedResponse = null
+            etName.setText("")
+            etNin.setText("")
+            etDob.setText("")
+            etSex.setText("")
+            etPhoneNumber.setText("")
+            reviewForm.visibility = View.VISIBLE
+        }
+
+        findViewById<Button>(R.id.btnSaveRecord).setOnClickListener {
+            val name = etName.text.toString().trim()
+            val nin = etNin.text.toString().trim()
+            val dob = etDob.text.toString().trim()
+            val sex = etSex.text.toString().trim()
+            val phone = etPhoneNumber.text.toString().trim()
+
+            if (name.isEmpty() || nin.isEmpty() || phone.isEmpty()) {
+                Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // If manually entered without scan, create a dummy ParseResponse
+            val response = currentScannedResponse ?: ParseResponse(
+                nin = nin,
+                full_name = name,
+                date_of_birth = dob,
+                sex = sex,
+                card_number = nin,
+                issue_date = "",
+                expiry_date = "",
+                is_expired = false,
+                raw_data = ""
+            )
+
+            val record = ScannedRecord(response, phone)
+            recordManager.saveRecord(record)
+            Toast.makeText(this, "Record saved successfully", Toast.LENGTH_SHORT).show()
+            closeReviewForm()
+        }
+
+        findViewById<Button>(R.id.btnCancelRecord).setOnClickListener {
+            closeReviewForm()
+        }
+
+        findViewById<Button>(R.id.btnExport).setOnClickListener {
+            exportToCsv()
+        }
 
         if (allPermissionsGranted()) {
             startCamera()
@@ -79,84 +160,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initViews() {
-        previewView = findViewById(R.id.previewView)
-        captureContainer = findViewById(R.id.capture_container)
-        recordsContainer = findViewById(R.id.records_container)
-        reviewFormOverlay = findViewById(R.id.review_form_overlay)
-        tvScannedData = findViewById(R.id.tv_scanned_data)
-        etPhoneNumber = findViewById(R.id.et_phone_number)
-        btnSaveRecord = findViewById(R.id.btn_save_record)
-        btnCancelRecord = findViewById(R.id.btn_cancel_record)
-        btnTabCapture = findViewById(R.id.btn_tab_capture)
-        btnTabRecords = findViewById(R.id.btn_tab_records)
-        recyclerRecords = findViewById(R.id.recycler_records)
-        btnExportRecords = findViewById(R.id.btn_export_records)
-    }
-
-    private fun setupListeners() {
-        btnTabCapture.setOnClickListener {
-            captureContainer.visibility = View.VISIBLE
-            recordsContainer.visibility = View.GONE
-        }
-
-        btnTabRecords.setOnClickListener {
-            captureContainer.visibility = View.GONE
-            recordsContainer.visibility = View.VISIBLE
-            loadRecords()
-        }
-
-        btnSaveRecord.setOnClickListener {
-            currentScannedResponse?.let { response ->
-                val phone = etPhoneNumber.text.toString().trim()
-                val record = ScannedRecord(response, phone)
-                recordManager.saveRecord(record)
-                Toast.makeText(this, "Record saved successfully", Toast.LENGTH_SHORT).show()
-                hideReviewForm()
-            }
-        }
-
-        btnCancelRecord.setOnClickListener {
-            hideReviewForm()
-        }
-
-        btnExportRecords.setOnClickListener {
-            exportToCsv()
-        }
-    }
-
-    private fun setupRecyclerView() {
-        recordAdapter = RecordAdapter(emptyList())
-        recyclerRecords.layoutManager = LinearLayoutManager(this)
-        recyclerRecords.adapter = recordAdapter
-    }
-
     private fun loadRecords() {
         val records = recordManager.loadRecords()
         recordAdapter.updateRecords(records)
     }
 
-    private fun showReviewForm(record: ParseResponse) {
-        currentScannedResponse = record
-        val status = if (record.is_expired) "⚠️ EXPIRED" else "✅ Valid"
-        val message = """
-            Full Name: ${record.full_name}
-            NIN: ${record.nin}
-            Sex: ${record.sex}
-            DOB: ${record.date_of_birth}
-            Status: $status
-        """.trimIndent()
-
-        tvScannedData.text = message
-        etPhoneNumber.setText("")
-        reviewFormOverlay.visibility = View.VISIBLE
-    }
-
-    private fun hideReviewForm() {
-        reviewFormOverlay.visibility = View.GONE
+    private fun closeReviewForm() {
+        reviewForm.visibility = View.GONE
         currentScannedResponse = null
-        etPhoneNumber.setText("")
-        isProcessing = false
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
@@ -172,19 +183,14 @@ class MainActivity : AppCompatActivity() {
                 .build()
                 .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
-            val imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                 .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor) { imageProxy ->
-                        processImage(imageProxy)
-                    }
-                }
 
             try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
-                    this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalysis
+                    this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture
                 )
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -192,35 +198,61 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun processImage(imageProxy: ImageProxy) {
-        if (isProcessing || reviewFormOverlay.visibility == View.VISIBLE || captureContainer.visibility != View.VISIBLE) {
-            imageProxy.close()
-            return
-        }
+    @androidx.camera.core.ExperimentalGetImage
+    private fun takePhotoAndProcess() {
+        val imageCapture = imageCapture ?: return
 
+        loadingOverlay.visibility = View.VISIBLE
+
+        imageCapture.takePicture(
+            ContextCompat.getMainExecutor(this),
+            object : ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                    processCapturedImage(imageProxy)
+                }
+
+                override fun onError(exc: ImageCaptureException) {
+                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                    loadingOverlay.visibility = View.GONE
+                    Toast.makeText(this@MainActivity, "Capture failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
+
+    @androidx.camera.core.ExperimentalGetImage
+    private fun processCapturedImage(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (mediaImage == null) {
             imageProxy.close()
+            loadingOverlay.visibility = View.GONE
             return
         }
 
-        val image = InputImage.fromMediaImage(
-            mediaImage, imageProxy.imageInfo.rotationDegrees
-        )
+        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         val scanner = BarcodeScanning.getClient()
 
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
+                var found = false
                 for (barcode in barcodes) {
                     if (barcode.format == Barcode.FORMAT_PDF417) {
                         val rawValue = barcode.rawValue
                         if (!rawValue.isNullOrBlank() && rawValue.contains(";")) {
-                            isProcessing = true
+                            found = true
                             sendToParser(rawValue)
                             break
                         }
                     }
                 }
+                if (!found) {
+                    loadingOverlay.visibility = View.GONE
+                    Toast.makeText(this, "No valid ID barcode found. Try again or enter manually.", Toast.LENGTH_LONG).show()
+                }
+            }
+            .addOnFailureListener {
+                loadingOverlay.visibility = View.GONE
+                Toast.makeText(this, "Barcode processing failed.", Toast.LENGTH_SHORT).show()
             }
             .addOnCompleteListener {
                 imageProxy.close()
@@ -232,13 +264,25 @@ class MainActivity : AppCompatActivity() {
             try {
                 val response = RetrofitClient.apiService.parseBarcode(ParseRequest(payload))
                 if (response.isSuccessful) {
-                    response.body()?.let { showReviewForm(it) }
+                    response.body()?.let { 
+                        currentScannedResponse = it
+                        etName.setText(it.full_name)
+                        etNin.setText(it.nin)
+                        etDob.setText(it.date_of_birth)
+                        etSex.setText(it.sex)
+                        etPhoneNumber.setText("")
+                        
+                        loadingOverlay.visibility = View.GONE
+                        reviewForm.visibility = View.VISIBLE
+                    }
                 } else {
                     val err = response.errorBody()?.string() ?: "Unknown error"
+                    loadingOverlay.visibility = View.GONE
                     showError("Server error: $err")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Network error", e)
+                loadingOverlay.visibility = View.GONE
                 showError("Network error. Is backend running at ${RetrofitClient.BASE_URL}?")
             }
         }
@@ -248,7 +292,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("Scan Failed")
             .setMessage(message)
-            .setPositiveButton("Try Again") { _, _ -> isProcessing = false }
+            .setPositiveButton("Try Again") { _, _ -> /* nothing */ }
             .setCancelable(false)
             .show()
     }
