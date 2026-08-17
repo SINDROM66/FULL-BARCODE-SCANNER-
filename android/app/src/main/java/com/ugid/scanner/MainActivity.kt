@@ -126,15 +126,20 @@ class MainActivity : AppCompatActivity() {
 
             // If manually entered without scan, create a dummy ParseResponse
             val response = currentScannedResponse ?: ParseResponse(
-                nin = nin,
+                surname = "",
+                given_name = name,
+                other_name = "",
                 full_name = name,
                 date_of_birth = dob,
-                sex = sex,
-                card_number = nin,
                 issue_date = "",
                 expiry_date = "",
+                nin = nin,
+                sex = sex,
+                card_number = nin,
+                age = 0,
                 is_expired = false,
-                raw_data = ""
+                fingerprint = FingerprintModel(0, 0, 0, 0),
+                warnings = emptyList()
             )
 
             val record = ScannedRecord(response, phone)
