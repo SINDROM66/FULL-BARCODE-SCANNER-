@@ -26,7 +26,13 @@ jobs:
     - name: Build Offline APK
       run: |
         cd offline-android
-        gradle assembleDebug --stacktrace --info
+        gradle assembleDebug --stacktrace > build_log.txt 2>&1 || {
+          echo "## Gradle Offline Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 300 build_log.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          exit 1
+        }
 
     - name: Upload Offline APK
       uses: actions/upload-artifact@v4
@@ -54,7 +60,6 @@ jobs:
     - name: Build Online APK
       run: |
         cd android
-        # Ensure top level gradle files exist
         if [ ! -f "settings.gradle" ]; then
           echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
           echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
@@ -64,7 +69,13 @@ jobs:
         if [ ! -f "build.gradle" ]; then
           echo "plugins { id 'com.android.application' version '8.1.0' apply false; id 'org.jetbrains.kotlin.android' version '1.9.0' apply false }" > build.gradle
         fi
-        gradle assembleDebug --stacktrace --info
+        gradle assembleDebug --stacktrace > build_log.txt 2>&1 || {
+          echo "## Gradle Online Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 300 build_log.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          exit 1
+        }
 
     - name: Upload Online APK
       uses: actions/upload-artifact@v4
