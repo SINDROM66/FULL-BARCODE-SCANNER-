@@ -6,13 +6,16 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class RecordAdapter(private var records: List<ScannedRecord>) :
+import android.widget.Button
+
+class RecordAdapter(private var records: List<ScannedRecord>, private val onDeleteClick: (ScannedRecord) -> Unit) :
     RecyclerView.Adapter<RecordAdapter.RecordViewHolder>() {
 
     class RecordViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvName: TextView = itemView.findViewById(R.id.tv_record_name)
         val tvNin: TextView = itemView.findViewById(R.id.tv_record_nin)
         val tvPhone: TextView = itemView.findViewById(R.id.tv_record_phone)
+        val btnDelete: Button = itemView.findViewById(R.id.btnDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecordViewHolder {
@@ -25,6 +28,9 @@ class RecordAdapter(private var records: List<ScannedRecord>) :
         holder.tvName.text = record.response.full_name
         holder.tvNin.text = "NIN: ${record.response.nin}"
         holder.tvPhone.text = "Phone: ${record.phoneNumber}"
+        holder.btnDelete.setOnClickListener {
+            onDeleteClick(record)
+        }
     }
 
     override fun getItemCount() = records.size

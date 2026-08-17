@@ -287,6 +287,14 @@
                     android:textSize="18sp" />
                     
                 <Button
+                    android:id="@+id/btnClearAll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#D32F2F"
+                    android:text="Clear All"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
                     android:id="@+id/btnExport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -317,6 +325,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="Capture"
+            android:textSize="18sp"
+            android:textStyle="bold"
             android:textColor="#005A32" />
 
         <Button
@@ -326,6 +336,8 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="Records"
+            android:textSize="18sp"
+            android:textStyle="bold"
             android:textColor="#666666" />
     </LinearLayout>
 

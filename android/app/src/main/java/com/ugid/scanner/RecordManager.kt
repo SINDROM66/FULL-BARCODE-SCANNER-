@@ -35,4 +35,18 @@ class RecordManager(private val context: Context) {
             emptyList()
         }
     }
+
+    fun clearAllRecords() {
+        if (file.exists()) {
+            file.delete()
+        }
+    }
+
+    fun deleteRecord(record: ScannedRecord) {
+        val records = loadRecords().toMutableList()
+        records.remove(record)
+        FileWriter(file).use { writer ->
+            gson.toJson(records, writer)
+        }
+    }
 }

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -79,7 +80,11 @@ class MainActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        recordAdapter = RecordAdapter(emptyList())
+        recordAdapter = RecordAdapter(emptyList()) { recordToDelete ->
+            recordManager.deleteRecord(recordToDelete)
+            loadRecords()
+            Toast.makeText(this, "Record deleted", Toast.LENGTH_SHORT).show()
+        }
         recyclerView.adapter = recordAdapter
 
         findViewById<Button>(R.id.btnTabCapture).setOnClickListener {
@@ -150,6 +155,12 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnCancelRecord).setOnClickListener {
             closeReviewForm()
+        }
+
+        findViewById<Button>(R.id.btnClearAll).setOnClickListener {
+            recordManager.clearAllRecords()
+            loadRecords()
+            Toast.makeText(this, "All records cleared", Toast.LENGTH_SHORT).show()
         }
 
         findViewById<Button>(R.id.btnExport).setOnClickListener {
@@ -310,7 +321,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         try {
-            val csvFile = File(cacheDir, "records.csv")
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val csvFile = File(downloadsDir, "NSSF_Records_${System.currentTimeMillis()}.csv")
             FileWriter(csvFile).use { writer ->
                 // Header
                 writer.append("Name,NIN,Phone Number,DOB,Sex,Card Number,Issue Date,Expiry Date\n")
@@ -328,19 +340,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            val uri = FileProvider.getUriForFile(
-                this,
-                "${packageName}.fileprovider",
-                csvFile
-            )
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            startActivity(Intent.createChooser(intent, "Export Records"))
+            Toast.makeText(this, "Exported successfully to Downloads folder", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Log.e(TAG, "Export failed", e)
             Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()

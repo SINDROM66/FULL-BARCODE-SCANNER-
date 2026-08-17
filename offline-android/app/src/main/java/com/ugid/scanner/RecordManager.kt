@@ -36,4 +36,18 @@ object RecordManager {
             emptyList()
         }
     }
+
+    fun clearAllRecords(context: Context) {
+        val file = File(context.filesDir, FILE_NAME)
+        if (file.exists()) {
+            file.delete()
+        }
+    }
+
+    fun deleteRecord(context: Context, record: Record) {
+        val records = getRecords(context).toMutableList()
+        records.remove(record)
+        val file = File(context.filesDir, FILE_NAME)
+        file.writeText(Gson().toJson(records))
+    }
 }

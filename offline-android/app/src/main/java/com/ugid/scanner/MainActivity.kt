@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -130,9 +131,19 @@ class MainActivity : AppCompatActivity() {
             exportToCsv()
         }
 
+        findViewById<Button>(R.id.btnClearAll).setOnClickListener {
+            RecordManager.clearAllRecords(this)
+            loadRecords()
+            Toast.makeText(this, "All records cleared", Toast.LENGTH_SHORT).show()
+        }
+
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        adapter = RecordsAdapter(emptyList())
+        adapter = RecordsAdapter(emptyList()) { recordToDelete ->
+            RecordManager.deleteRecord(this, recordToDelete)
+            loadRecords()
+            Toast.makeText(this, "Record deleted", Toast.LENGTH_SHORT).show()
+        }
         recyclerView.adapter = adapter
 
         if (allPermissionsGranted()) {
@@ -154,20 +165,14 @@ class MainActivity : AppCompatActivity() {
             val csvContent = records.joinToString("\n") {
                 "${it.name.replace(",", " ")},${it.nin},${it.dob},${it.sex},${it.cardNumber},${it.phoneNumber.replace(",", " ")}"
             }
-            val file = File(cacheDir, "records.csv")
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val file = File(downloadsDir, "NSSF_Records_${System.currentTimeMillis()}.csv")
             file.writeText(csvHeader + csvContent)
 
-            val uri: Uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
-                putExtra(Intent.EXTRA_SUBJECT, "NSSF ID Records")
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            startActivity(Intent.createChooser(intent, "Export Records"))
+            Toast.makeText(this, "Exported successfully to Downloads folder", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -305,12 +310,13 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-class RecordsAdapter(private var records: List<Record>) : RecyclerView.Adapter<RecordsAdapter.ViewHolder>() {
+class RecordsAdapter(private var records: List<Record>, private val onDeleteClick: (Record) -> Unit) : RecyclerView.Adapter<RecordsAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvName)
         val tvNin: TextView = view.findViewById(R.id.tvNin)
         val tvDetails: TextView = view.findViewById(R.id.tvDetails)
         val tvPhone: TextView = view.findViewById(R.id.tvPhone)
+        val btnDelete: Button = view.findViewById(R.id.btnDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -324,6 +330,9 @@ class RecordsAdapter(private var records: List<Record>) : RecyclerView.Adapter<R
         holder.tvNin.text = rec.nin
         holder.tvDetails.text = "DOB: ${rec.dob} | Sex: ${rec.sex} | Card: ${rec.cardNumber}"
         holder.tvPhone.text = "Phone: ${rec.phoneNumber}"
+        holder.btnDelete.setOnClickListener {
+            onDeleteClick(rec)
+        }
     }
 
     override fun getItemCount() = records.size
