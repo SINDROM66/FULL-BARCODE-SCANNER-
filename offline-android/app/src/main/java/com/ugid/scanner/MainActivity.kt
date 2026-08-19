@@ -158,18 +158,36 @@ class MainActivity : AppCompatActivity() {
         adapter.updateData(records)
     }
 
+    private val createDocumentLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val records = RecordManager.getRecords(this)
+                val csvHeader = "Name,NIN,DOB,Sex,CardNumber,PhoneNumber\n"
+                val csvContent = records.joinToString("\n") {
+                    "${it.name.replace(",", " ")},${it.nin},${it.dob},${it.sex},${it.cardNumber},${it.phoneNumber.replace(",", " ")}"
+                }
+                
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write((csvHeader + csvContent).toByteArray())
+                }
+                Toast.makeText(this, "File saved successfully!", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun exportToCsv() {
         try {
             val records = RecordManager.getRecords(this)
-            val csvHeader = "Name,NIN,DOB,Sex,CardNumber,PhoneNumber\n"
-            val csvContent = records.joinToString("\n") {
-                "${it.name.replace(",", " ")},${it.nin},${it.dob},${it.sex},${it.cardNumber},${it.phoneNumber.replace(",", " ")}"
+            if (records.isEmpty()) {
+                Toast.makeText(this, "No records to export", Toast.LENGTH_SHORT).show()
+                return
             }
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val file = File(downloadsDir, "NSSF_Records_${System.currentTimeMillis()}.csv")
-            file.writeText(csvHeader + csvContent)
-
-            Toast.makeText(this, "Exported successfully to Downloads folder", Toast.LENGTH_LONG).show()
+            createDocumentLauncher.launch("NSSF_Records_${System.currentTimeMillis()}.csv")
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()

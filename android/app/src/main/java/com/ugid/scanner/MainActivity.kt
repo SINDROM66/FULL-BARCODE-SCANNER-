@@ -313,6 +313,38 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private val createDocumentLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val records = recordManager.loadRecords()
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    // Header
+                    val header = "Name,NIN,Phone Number,DOB,Sex,Card Number,Issue Date,Expiry Date\n"
+                    outputStream.write(header.toByteArray())
+                    // Data
+                    for (record in records) {
+                        val r = record.response
+                        val line = "${escapeCsv(r.full_name)}," +
+                            "${escapeCsv(r.nin)}," +
+                            "${escapeCsv(record.phoneNumber)}," +
+                            "${escapeCsv(r.date_of_birth)}," +
+                            "${escapeCsv(r.sex)}," +
+                            "${escapeCsv(r.card_number)}," +
+                            "${escapeCsv(r.issue_date)}," +
+                            "${escapeCsv(r.expiry_date)}\n"
+                        outputStream.write(line.toByteArray())
+                    }
+                }
+                Toast.makeText(this, "File saved successfully!", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save file", e)
+                Toast.makeText(this, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun exportToCsv() {
         val records = recordManager.loadRecords()
         if (records.isEmpty()) {
@@ -321,26 +353,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         try {
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val csvFile = File(downloadsDir, "NSSF_Records_${System.currentTimeMillis()}.csv")
-            FileWriter(csvFile).use { writer ->
-                // Header
-                writer.append("Name,NIN,Phone Number,DOB,Sex,Card Number,Issue Date,Expiry Date\n")
-                // Data
-                for (record in records) {
-                    val r = record.response
-                    writer.append("${escapeCsv(r.full_name)},")
-                        .append("${escapeCsv(r.nin)},")
-                        .append("${escapeCsv(record.phoneNumber)},")
-                        .append("${escapeCsv(r.date_of_birth)},")
-                        .append("${escapeCsv(r.sex)},")
-                        .append("${escapeCsv(r.card_number)},")
-                        .append("${escapeCsv(r.issue_date)},")
-                        .append("${escapeCsv(r.expiry_date)}\n")
-                }
-            }
-
-            Toast.makeText(this, "Exported successfully to Downloads folder", Toast.LENGTH_LONG).show()
+            createDocumentLauncher.launch("NSSF_Records_${System.currentTimeMillis()}.csv")
         } catch (e: Exception) {
             Log.e(TAG, "Export failed", e)
             Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
